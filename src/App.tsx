@@ -15,14 +15,6 @@ function App() {
         eventTime
     } = useCaptureTimers("inquiry text 1");
 
-    const startCaptureEvent = () => {
-        startCapture("user reading");
-    }
-
-    const stopCaptureEvent = () => { 
-        stopCapture("user reading");
-    }
-
     const logging = () => {
         console.log(events);
         console.log(currentEvent);
@@ -37,12 +29,14 @@ function App() {
         <div className="container"> 
                 <div className="timeContainer">
                     <span>Global: {globalTime}</span>
-                    <span>Reading: {eventTime}</span>
+                    <span>Event: {eventTime}</span>
                 </div>
-                <button onClick={startCaptureEvent} className="button">Start Reading</button>
-                <button onClick={stopCaptureEvent} className="button">Stop Reading</button>
-                <button onClick={logging} className="button">Log</button>
-                <button onClick={reset} className="button">Reset</button>
+                <p><button onClick={() => startCapture("user is reading")} className="button">Start Reading</button>
+                <button onClick={() => stopCapture("user is reading")} className="button">Stop Reading</button></p>
+                <p><button onClick={() => startCapture("user editing")} className="button">Start Editing</button>
+                <button onClick={() => stopCapture("user editing")} className="button">Stop Editing</button></p>
+                <p><button onClick={logging} className="button">Log</button>
+                <button onClick={reset} className="button">Reset</button></p>
             </div>  
         </header>
     </div>
