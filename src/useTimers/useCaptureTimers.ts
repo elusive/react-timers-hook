@@ -111,9 +111,7 @@ export const useCaptureTimers = (inquiryText: string) => {
         }
 
         // start event timer running (start/resume)
-        if (!isEventRunning) {
-            isEventRunningSet(true);
-        }
+        isEventRunningSet(true);
 
         // TODO: anything else for resume??
         // find/create current inquiry
@@ -166,8 +164,7 @@ export const useCaptureTimers = (inquiryText: string) => {
     } 
 
     // stop
-    const stopCapture = (captureType: string) => {
-        console.log(`stop capturing event: ${captureType}`);        
+    const stopCapture = async (captureType: string) => {
         
         if (currentEvent !== captureType) {
             console.error(`Event type: ${captureType} not started`);
