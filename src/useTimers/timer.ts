@@ -1,8 +1,15 @@
+import React from "react";
+
+
+/**
+ * Timer class for tracking elapsed time by the elapsed
+ * and providing the current formatted time elapsed as string.
+ */
 export class Timer {
     public startMs: number;
     public elapsedSeconds: number = 0;
-    
-    _intervalId: any; 
+
+    _intervalId: number | undefined; 
 
     constructor(start: number) {
         this.startMs = start; 
@@ -14,14 +21,18 @@ export class Timer {
     }
 
     public start(): void {
-        this._intervalId = setInterval(() => {
+        this._intervalId = window.setInterval(() => {
             this.elapsedSeconds += 1;
         }, 1000);
-
     }
 
-    public stop(): void {
-        clearInterval(this._intervalId);
+    public stop(): number {
+        window.clearInterval(this._intervalId);
+        return Date.now() - this.startMs;
+    }
+
+    public isRunning(): boolean {
+        return this._intervalId !== null;
     }
 }
 
