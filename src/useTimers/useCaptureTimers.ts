@@ -123,7 +123,7 @@ export const useCaptureTimers = (inquiryText: string) => {
         if (!currentInquiry) {
             isNewInquiry = true;
             currentInquiry = {
-                inquiryNumber: newInquiryNumber,
+                inquiryNumber: newInquiryNumber > 0 ? newInquiryNumber : 1,
                 inquiryText: inquiryText,
                 captures: []
             } as Inquiry
@@ -136,7 +136,7 @@ export const useCaptureTimers = (inquiryText: string) => {
         if (!currentCapture) {
             isNewCapture = true;
             currentCapture = {
-                captureEventNumber: newCaptureNumber,
+                captureEventNumber: newCaptureNumber > 0 ? newCaptureNumber : 1,
                 type: captureType,
                 captured: true,
                 timestamps: []
@@ -148,7 +148,7 @@ export const useCaptureTimers = (inquiryText: string) => {
         currentCapture.timestamps = [
             ...currentCapture.timestamps,
             { 
-                timestampNumber: newTimestampNumber,
+                timestampNumber: newTimestampNumber > 0 ? newTimestampNumber : 1,
                 startTime: eventStart,
                 endTime: 0,
                 captured: false
