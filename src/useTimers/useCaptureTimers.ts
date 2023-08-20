@@ -1,4 +1,3 @@
-import { wait } from "@testing-library/user-event/dist/utils";
 import { useState, useEffect } from "react";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
@@ -35,8 +34,6 @@ interface CaptureDataState {
   setGlobalTime: (time: number | null) => void;
   eventTime: number | null;  
   setEventTime: (time: number | null) => void;
-  lastTimestampEnd : number | null;
-  setLastTimestampEnd : (ts: number | null) => void;
 }
 
 
@@ -52,8 +49,6 @@ const useCaptureDataStore = create<CaptureDataState>()(
             setGlobalTime: (time: number | null) => set({ globalTime: time }),
             eventTime: null,
             setEventTime: (time: number | null) => set({ eventTime: time }),
-            lastTimestampEnd: null,
-            setLastTimestampEnd: (ts: number | null) => set({ lastTimestampEnd: ts}),
         }), { name: "required name"} )
     )
 );
@@ -74,43 +69,16 @@ export const useCaptureTimers = (inquiryText: string) => {
         state => { return { globalTime: state.globalTime, setGlobalTime: state.setGlobalTime } });
     const { eventTime, setEventTime } = useCaptureDataStore(
         state => { return { eventTime: state.eventTime, setEventTime: state.setEventTime } });
-    const { lastTimestampEnd, setLastTimestampEnd } = useCaptureDataStore(
-        state => { return { lastTimestampEnd: state.lastTimestampEnd, setLastTimestampEnd: state.setLastTimestampEnd } }); 
 
     // local state
-    const [globalElapsed, setGlobalElapsed] = useState<number>(0);
-    const [eventElapsed, setEventElapsed] = useState<number>(0);
-    const [isRunning, setIsRunning] = useState<boolean>(false);
-    const [captureType, setCapturType] = useState<string | null>(null);
+    const [globalElapsed, globalElapsedSet] = useState<number>(0);
+    const [eventElapsed, eventElapsedSet] = useState<number>(0);
+    const [isRunning, isRunningSet] = useState<boolean>(false);
+    const [isEventRunning, isEventRunningSet] = useState<boolean>(false);
+    const [lastTimestampEnd, lastTimestampEndSet] = useState<number | null>(null);
 
     // we need to have an initialized value in capture data state . events
     let workingEvents = events || [];
-
-
-    // use effect to set interval
-    useEffect(() => {
-        let intervalId = setInterval(() => {
-            // update global timer
-            if (globalTime) {
-                const currentElapsed = Date.now() - (globalTime || 0);
-                if (currentElapsed < 0) {
-                    setGlobalTime(Date.now());
-                    setGlobalElapsed(0);
-                } else {
-                    setGlobalElapsed(currentElapsed);
-                }
-            }
-
-            // update event timer
-            if (isRunning) {
-                const currentEventElapsed = Date.now() - (eventTime || 0);
-                setEventElapsed(currentEventElapsed);
-            }
-        }, 1000);
-
-        return () => clearInterval(intervalId);
-    })
-
 
     // start  
     const startCapture = (captureType: string) => {
@@ -119,35 +87,37 @@ export const useCaptureTimers = (inquiryText: string) => {
         const now = Date.now();
         if (!globalTime) {
             setGlobalTime(now);
+            isRunningSet(true);
         }
 
         // check for existing type of capture and stop if found
         if (currentEvent && currentEvent !== captureType) {
             stopCapture(currentEvent);
-        } 
-
-        // start event timer running (start/resume)
-        if (!isRunning) {
-            setIsRunning(true);
         }
-        // TODO: anything else for resume??
-                
         
         // set new current event
         setCurrentEvent(captureType);
 
         // use last timestamp end value for start of new event
-        const eventStart = lastTimestampEnd === null ? 0 : lastTimestampEnd;
+        const eventStart = lastTimestampEnd === null ? now : lastTimestampEnd;
 
         // set start for the event time
         if (!eventTime) {
-            setEventTime(now);
+            setEventTime(eventStart);
         }
 
+        // start event timer running (start/resume)
+        if (!isEventRunning) {
+            isEventRunningSet(true);
+        }
+
+        // TODO: anything else for resume??
         // find/create current inquiry
+        let isNewInquiry = false;
         let currentInquiry = workingEvents.find(evt => evt.inquiryText == inquiryText);
-        let newInquiryNumber = Math.max(...workingEvents.map(evt => evt.inquiryNumber)) + 1;    // TODO:  new Id for inquiries??
+        let newInquiryNumber = Math.max(...workingEvents.map(evt => evt.inquiryNumber)) + 1;   
         if (!currentInquiry) {
+            isNewInquiry = true;
             currentInquiry = {
                 inquiryNumber: newInquiryNumber,
                 inquiryText: inquiryText,
@@ -155,27 +125,39 @@ export const useCaptureTimers = (inquiryText: string) => {
             } as Inquiry
         }
 
-        // update captures with current capture
-        currentInquiry.captures = [
-            ...(currentInquiry.captures || []),
-            {
-                captureEventNumber: 0,
+        // find/create current capture
+        let isNewCapture = false;
+        let currentCapture = currentInquiry.captures.find(cap => cap.type === captureType);
+        let newCaptureNumber = Math.max(...currentInquiry.captures.map(cap => cap.captureEventNumber)) + 1;
+        if (!currentCapture) {
+            isNewCapture = true;
+            currentCapture = {
+                captureEventNumber: newCaptureNumber,
                 type: captureType,
                 captured: true,
-                timestamps: [
-                    ...(currentInquiry.captures || []).find(c => c.type == captureType)?.timestamps || [],
-                    { 
-                        timestampNumber: NaN, // TODO: where to get timestampNumber??
-                        startTime: eventStart,
-                        endTime: 0,
-                        captured: false  // set to true when endTime is set
-                    } as Timestamp
-                ]
-            } as CaptureEvent
-        ]
+                timestamps: []
+            } as CaptureEvent;
+        }
 
-        // add current query
-        workingEvents.push(currentInquiry);
+        // create new timestamp for current capture
+        let newTimestampNumber = Math.max(...currentCapture.timestamps.map(ts => ts.timestampNumber)) + 1;
+        currentCapture.timestamps = [
+            ...currentCapture.timestamps,
+            { 
+                timestampNumber: newTimestampNumber,
+                startTime: eventStart,
+                endTime: 0,
+                captured: false
+            } as Timestamp
+        ];
+
+        // add current capture if new record
+        if (isNewCapture) currentInquiry.captures.push(currentCapture);
+
+        // add current query if new record
+        if (isNewInquiry) workingEvents.push(currentInquiry);
+        
+        // update back to events
         setEvents(workingEvents);
     } 
 
@@ -211,7 +193,8 @@ export const useCaptureTimers = (inquiryText: string) => {
                 return evt;
             });
 
-            setIsRunning(false);
+            isEventRunningSet(false);
+            lastTimestampEndSet(end);
             setEvents(workingEvents);
         }
     }
@@ -222,19 +205,48 @@ export const useCaptureTimers = (inquiryText: string) => {
         setCurrentEvent(null);
         setGlobalTime(null);
         setEventTime(null);
-        setLastTimestampEnd(null);
+        lastTimestampEndSet(null);
 
-        setCapturType(null);
-        setGlobalElapsed(0);
-        setEventElapsed(0);
-        setIsRunning(false);
+        isRunningSet(false);
+        isEventRunningSet(false);
+        globalElapsedSet(0);
+        eventElapsedSet(0);
     }
 
 
-    const formatTime = (time: number | null): string =>  {
-        if (!time) time = 0;
-        const dt = new Date(time);
-        return dt.toLocaleTimeString('en-US')
+    // use effect to set interval
+    useEffect(() => {
+        let intervalId = setInterval(() => {
+            // update global timer
+            if (globalTime != null && isRunning) {
+                const currentElapsed = Date.now() - (globalTime || 0);
+                if (currentElapsed < 0) {
+                    setGlobalTime(Date.now());
+                    globalElapsedSet(0);
+                } else {
+                    globalElapsedSet(currentElapsed);
+                }
+            }
+
+            // update event timer
+            if (eventTime != null && isEventRunning) {
+                const currentEventElapsed = Date.now() - (eventTime || 0);
+                eventElapsedSet(currentEventElapsed);
+            }
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    })
+
+    const formatTime = (timeMs: number): string =>  {
+      const totalSeconds = Math.floor(timeMs / 1000);
+      const seconds = totalSeconds % 60;
+      const minutes = Math.floor(totalSeconds / 60) % 60;
+      const hours = Math.floor(totalSeconds / 3600);
+
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
 
 
