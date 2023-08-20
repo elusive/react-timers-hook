@@ -103,11 +103,11 @@ export const useCaptureTimers = (inquiryText: string) => {
         setCurrentEvent(captureType);
 
         // use last timestamp end value for start of new event
-        const eventStart = lastTimestampEnd === null ? now : lastTimestampEnd;
+        const eventStart = lastTimestampEnd === null ? 0 : lastTimestampEnd;
 
         // set start for the event time
         if (!eventTime) {
-            setEventTime(eventStart);
+            setEventTime(now);
         }
 
         // start event timer running (start/resume)
@@ -175,8 +175,9 @@ export const useCaptureTimers = (inquiryText: string) => {
         }
 
         if (isRunning) {
-           // const end = Date.now() - (globalTime || Date.now());
-            const end = Date.now();
+            // calculate stop time
+            const end = Date.now() - (globalTime || Date.now());
+           
             // update timestamp for current capture
             let workingEvents = events || [];
             workingEvents = workingEvents.map(evt => {
