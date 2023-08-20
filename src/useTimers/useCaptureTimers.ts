@@ -75,13 +75,13 @@ export const useCaptureTimers = (inquiryText: string) => {
     const [eventElapsed, eventElapsedSet] = useState<number>(0);
     const [isRunning, isRunningSet] = useState<boolean>(false);
     const [isEventRunning, isEventRunningSet] = useState<boolean>(false);
-    const [lastTimestampEnd, lastTimestampEndSet] = useState<number | null>(null);
+    const [lastTimestampEnd, lastTimestampEndSet] = useState<Map<string, number> | null>(null);
 
     // we need to have an initialized value in capture data state . events
     let workingEvents = events || [];
 
     // start  
-    const startCapture = (captureType: string) => {
+    const startCapture = async (captureType: string) => {
         
         // check for global time 
         const now = Date.now();
@@ -96,14 +96,14 @@ export const useCaptureTimers = (inquiryText: string) => {
 
         // check for existing type of capture and stop if found
         if (currentEvent && currentEvent !== captureType && isEventRunning) {
-            stopCapture(currentEvent);
+            await stopCapture(currentEvent);
         }
         
         // set new current event
         setCurrentEvent(captureType);
 
         // use last timestamp end value for start of new event
-        const eventStart = lastTimestampEnd === null ? 0 : lastTimestampEnd;
+        //const eventStart = lastTimestampEnd?.has(captureType) ? lastTimestampEnd.get(captureType) : 0;
 
         // set start for the event time
         if (!eventTime) {
@@ -142,12 +142,13 @@ export const useCaptureTimers = (inquiryText: string) => {
         }
 
         // create new timestamp for current capture
-        let newTimestampNumber = Math.max(...currentCapture.timestamps.map(ts => ts.timestampNumber)) + 1;
+        let lastTimestampNumber = Math.max(...currentCapture.timestamps.map(ts => ts.timestampNumber));
+        lastTimestampNumber = lastTimestampNumber < 0 ? 1 : lastTimestampNumber;
         currentCapture.timestamps = [
             ...currentCapture.timestamps,
             { 
-                timestampNumber: newTimestampNumber > 0 ? newTimestampNumber : 1,
-                startTime: eventStart,
+                timestampNumber: lastTimestampNumber + 1,
+                startTime: isNewCapture ? 0 : Math.max(...currentCapture.timestamps.map(ts => ts.endTime)),
                 endTime: 0,
                 captured: false
             } as Timestamp
@@ -171,7 +172,7 @@ export const useCaptureTimers = (inquiryText: string) => {
             return;
         }
 
-        if (isRunning) {
+        if (isEventRunning) {
             // calculate stop time
             const end = Date.now() - (globalTime || Date.now());
            
@@ -196,8 +197,21 @@ export const useCaptureTimers = (inquiryText: string) => {
             });
 
             isEventRunningSet(false);
-            lastTimestampEndSet(end);
+/*            lastTimestampEndSet(lte => {
+                if (lte != null) {
+                    lte.set(captureType, end);
+                    return lte;
+                } 
+                return new Map<string, number>([[captureType, end]]);
+            });  */
             setEvents(workingEvents);
+            if (lastTimestampEnd) {
+                lastTimestampEnd.set(captureType, end);
+                lastTimestampEndSet(lastTimestampEnd);
+            } else {
+                lastTimestampEndSet(new Map<string, number>([[captureType, end]]));
+            }
+            eventElapsedSet(0);
         }
     }
 
