@@ -75,7 +75,6 @@ export const useCaptureTimers = (inquiryText: string) => {
     const [eventElapsed, eventElapsedSet] = useState<number>(0);
     const [isRunning, isRunningSet] = useState<boolean>(false);
     const [isEventRunning, isEventRunningSet] = useState<boolean>(false);
-    const [lastTimestampEnd, lastTimestampEndSet] = useState<Map<string, number> | null>(null);
 
     // we need to have an initialized value in capture data state . events
     let workingEvents = events || [];
@@ -102,18 +101,14 @@ export const useCaptureTimers = (inquiryText: string) => {
         // set new current event
         setCurrentEvent(captureType);
 
-        // use last timestamp end value for start of new event
-        //const eventStart = lastTimestampEnd?.has(captureType) ? lastTimestampEnd.get(captureType) : 0;
-
         // set start for the event time
-        if (!eventTime) {
-            setEventTime(now);
-        }
+        setEventTime(now);
 
         // start event timer running (start/resume)
         isEventRunningSet(true);
 
         // TODO: anything else for resume??
+
         // find/create current inquiry
         let isNewInquiry = false;
         let currentInquiry = workingEvents.find(evt => evt.inquiryText == inquiryText);
@@ -142,12 +137,11 @@ export const useCaptureTimers = (inquiryText: string) => {
         }
 
         // create new timestamp for current capture
-        let lastTimestampNumber = Math.max(...currentCapture.timestamps.map(ts => ts.timestampNumber));
-        lastTimestampNumber = lastTimestampNumber < 0 ? 1 : lastTimestampNumber;
+        let nextTimestampNumber = Math.max(...currentCapture.timestamps.map(ts => ts.timestampNumber)) + 1;
         currentCapture.timestamps = [
             ...currentCapture.timestamps,
             { 
-                timestampNumber: lastTimestampNumber + 1,
+                timestampNumber: nextTimestampNumber > 0 ? nextTimestampNumber : 1,
                 startTime: isNewCapture ? 0 : Math.max(...currentCapture.timestamps.map(ts => ts.endTime)),
                 endTime: 0,
                 captured: false
@@ -197,20 +191,6 @@ export const useCaptureTimers = (inquiryText: string) => {
             });
 
             isEventRunningSet(false);
-/*            lastTimestampEndSet(lte => {
-                if (lte != null) {
-                    lte.set(captureType, end);
-                    return lte;
-                } 
-                return new Map<string, number>([[captureType, end]]);
-            });  */
-            setEvents(workingEvents);
-            if (lastTimestampEnd) {
-                lastTimestampEnd.set(captureType, end);
-                lastTimestampEndSet(lastTimestampEnd);
-            } else {
-                lastTimestampEndSet(new Map<string, number>([[captureType, end]]));
-            }
             eventElapsedSet(0);
         }
     }
@@ -221,7 +201,6 @@ export const useCaptureTimers = (inquiryText: string) => {
         setCurrentEvent(null);
         setGlobalTime(null);
         setEventTime(null);
-        lastTimestampEndSet(null);
 
         isRunningSet(false);
         isEventRunningSet(false);
@@ -234,7 +213,7 @@ export const useCaptureTimers = (inquiryText: string) => {
     useEffect(() => {
         let intervalId = setInterval(() => {
             // update global timer
-            if (globalTime != null && isRunning) {
+            if (isRunning) {
                 const currentElapsed = Date.now() - (globalTime || 0);
                 if (currentElapsed < 0) {
                     setGlobalTime(Date.now());
@@ -245,7 +224,7 @@ export const useCaptureTimers = (inquiryText: string) => {
             }
 
             // update event timer
-            if (eventTime != null && isEventRunning) {
+            if (isEventRunning) {
                 const currentEventElapsed = Date.now() - (eventTime || 0);
                 eventElapsedSet(currentEventElapsed);
             }
