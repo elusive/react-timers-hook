@@ -90,8 +90,12 @@ export const useCaptureTimers = (inquiryText: string) => {
             isRunningSet(true);
         }
 
+        if (currentEvent === captureType && isEventRunning) {
+            return; // already running
+        }
+
         // check for existing type of capture and stop if found
-        if (currentEvent && currentEvent !== captureType) {
+        if (currentEvent && currentEvent !== captureType && isEventRunning) {
             stopCapture(currentEvent);
         }
         
@@ -171,8 +175,8 @@ export const useCaptureTimers = (inquiryText: string) => {
         }
 
         if (isRunning) {
-            const end = Date.now() - (globalTime || Date.now());
-
+           // const end = Date.now() - (globalTime || Date.now());
+            const end = Date.now();
             // update timestamp for current capture
             let workingEvents = events || [];
             workingEvents = workingEvents.map(evt => {
