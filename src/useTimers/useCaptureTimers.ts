@@ -180,7 +180,18 @@ export const useCaptureTimers = (inquiryText: string) => {
         }, 1000);
 
         return () => clearInterval(intervalId);
-    })
+    });
+
+    useEffect(() => {
+        // update isRunnings based on globalTime so that we 
+        // see changes to globalTime when reset in another 
+        // instance of the hook
+        isRunningSet(!!globalTime);
+        if (!globalTime) {
+            globalElapsedSet(0);
+            eventElapsedSet(0);
+        }
+    }, [globalTime]);
 
 
     const formatTime = (timeMs: number): string =>  {
