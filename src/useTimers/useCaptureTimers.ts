@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { create } from "zustand";
-import { devtools, persist } from "zustand/middleware";
+import { devtools, persist, createJSONStorage } from "zustand/middleware";
 
 
 interface Timestamp {
@@ -40,7 +40,7 @@ interface CaptureDataState {
 // updates to useCaptureDataStore hook
 const useCaptureDataStore = create<CaptureDataState>()(
     devtools(
-        persist((set) => ({
+        persist((set, get) => ({
             events: null,
             setEvents: (events: Inquiry[]) => set({ events }),
             currentEvent: null,
@@ -49,18 +49,15 @@ const useCaptureDataStore = create<CaptureDataState>()(
             setGlobalTime: (time: number | null) => set({ globalTime: time }),
             eventTime: null,
             setEventTime: (time: number | null) => set({ eventTime: time }),
-        }), { name: "required name"} )
+        }), { 
+                name: "required name", 
+                storage: createJSONStorage(() => sessionStorage),
+                partialize: (state) => ({ globalTime: state.globalTime }),
+            })
     )
 );
 
-
-/**
- * Desc:    Hook to capture start/stop times on events 
- * Returns: globalTimer, eventTimer, events, currentEvent
- */ 
-export const useCaptureTimers = (inquiryText: string) => {
-
-    // global state
+const useHookCaptureStore = (): CaptureDataState => {
     const { events, setEvents } = useCaptureDataStore(
         state => { return { events: state.events, setEvents: state.setEvents } });
     const { currentEvent, setCurrentEvent } = useCaptureDataStore(
@@ -70,6 +67,29 @@ export const useCaptureTimers = (inquiryText: string) => {
     const { eventTime, setEventTime } = useCaptureDataStore(
         state => { return { eventTime: state.eventTime, setEventTime: state.setEventTime } });
 
+    return {
+        events, setEvents,
+        currentEvent, setCurrentEvent,
+        globalTime, setGlobalTime,
+        eventTime, setEventTime
+    };
+}
+
+
+/**
+ * Desc:    Hook to capture start/stop times on events 
+ * Returns: globalTimer, eventTimer, events, currentEvent
+ */ 
+export const useCaptureTimers = (inquiryText: string) => {
+
+    // global state
+    const {
+        events, setEvents,
+        currentEvent, setCurrentEvent,
+        globalTime, setGlobalTime,
+        eventTime, setEventTime
+    } = useHookCaptureStore();
+    
     // local state
     const [globalElapsed, globalElapsedSet] = useState<number>(0);
     const [eventElapsed, eventElapsedSet] = useState<number>(0);
@@ -142,7 +162,7 @@ export const useCaptureTimers = (inquiryText: string) => {
             ...currentCapture.timestamps,
             { 
                 timestampNumber: nextTimestampNumber > 0 ? nextTimestampNumber : 1,
-                startTime: isNewCapture ? 0 : Math.max(...currentCapture.timestamps.map(ts => ts.endTime)),
+                startTime: globalElapsed, //isNewCapture ? 0 : Math.max(...currentCapture.timestamps.map(ts => ts.endTime)),
                 endTime: 0,
                 captured: false
             } as Timestamp
