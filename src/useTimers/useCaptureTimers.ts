@@ -52,7 +52,6 @@ const useCaptureDataStore = create<CaptureDataState>()(
         }), { 
                 name: "required name", 
                 storage: createJSONStorage(() => sessionStorage),
-                partialize: (state) => ({ globalTime: state.globalTime }),
             })
     )
 );
