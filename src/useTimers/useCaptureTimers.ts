@@ -57,7 +57,13 @@ const useCaptureDataStore = create<CaptureDataState>()(
     )
 );
 
-const useHookCaptureStore = (): CaptureDataState => {
+/**
+ * Desc:    Hook to capture start/stop times on events 
+ * Returns: globalTimer, eventTimer, events, currentEvent
+ */ 
+export const useCaptureTimers = (inquiryText: string) => {
+
+   // global state
     const { events, setEvents } = useCaptureDataStore(
         state => { return { events: state.events, setEvents: state.setEvents } });
     const { currentEvent, setCurrentEvent } = useCaptureDataStore(
@@ -67,38 +73,15 @@ const useHookCaptureStore = (): CaptureDataState => {
     const { eventTime, setEventTime } = useCaptureDataStore(
         state => { return { eventTime: state.eventTime, setEventTime: state.setEventTime } });
 
-    return {
-        events, setEvents,
-        currentEvent, setCurrentEvent,
-        globalTime, setGlobalTime,
-        eventTime, setEventTime
-    };
-}
-
-
-/**
- * Desc:    Hook to capture start/stop times on events 
- * Returns: globalTimer, eventTimer, events, currentEvent
- */ 
-export const useCaptureTimers = (inquiryText: string) => {
-
-    // global state
-    const {
-        events, setEvents,
-        currentEvent, setCurrentEvent,
-        globalTime, setGlobalTime,
-        eventTime, setEventTime
-    } = useHookCaptureStore();
-    
     // local state
     const [globalElapsed, globalElapsedSet] = useState<number>(0);
     const [eventElapsed, eventElapsedSet] = useState<number>(0);
-    const [isRunning, isRunningSet] = useState<boolean>(false);
-    const [isEventRunning, isEventRunningSet] = useState<boolean>(false);
+    const [isRunning, isRunningSet] = useState<boolean>(!!globalTime);
+    const [isEventRunning, isEventRunningSet] = useState<boolean>();
 
     // we need to have an initialized value in capture data state . events
     let workingEvents = events || [];
-
+    
     // start  
     const startCapture = async (captureType: string) => {
         
@@ -106,8 +89,8 @@ export const useCaptureTimers = (inquiryText: string) => {
         const now = Date.now();
         if (!globalTime) {
             setGlobalTime(now);
-            isRunningSet(true);
         }
+        isRunningSet(true);
 
         if (currentEvent === captureType && isEventRunning) {
             return; // already running
@@ -228,7 +211,6 @@ export const useCaptureTimers = (inquiryText: string) => {
         eventElapsedSet(0);
     }
 
-
     // use effect to set interval
     useEffect(() => {
         let intervalId = setInterval(() => {
@@ -252,6 +234,7 @@ export const useCaptureTimers = (inquiryText: string) => {
 
         return () => clearInterval(intervalId);
     })
+
 
     const formatTime = (timeMs: number): string =>  {
       const totalSeconds = Math.floor(timeMs / 1000);
