@@ -190,6 +190,7 @@ export const useCaptureTimers = (inquiryText: string) => {
         if (!globalTime) {
             globalElapsedSet(0);
             eventElapsedSet(0);
+            isEventRunningSet(false);
         }
     }, [globalTime]);
 
