@@ -59,21 +59,13 @@ export const useCaptureDataStore = create<CaptureDataState>()(
 
 function App() {
 
-    const {
-        events,
-        currentEvent,
-        startCapture,
-        stopCapture,
-        reset,
-        globalTime,
-        eventTime
-    } = useCaptureTimers("inquiry text 1");
+    const inquiry1 = useCaptureTimers("inquiry text 1");
 
     const inquiry2 = useCaptureTimers("another inq");
 
     const logging = () => {
-        console.log(`Inquiry 1 ${events}`);
-        console.log(`Inquiry 2 ${events}`);
+        console.log(inquiry1.events);
+        console.log(inquiry2.events);
     }
 
   return (
@@ -82,15 +74,15 @@ function App() {
         <div className="container"> 
             <h3>Inquiry 1</h3>
             <div className="timeContainer">
-                <span>Global: {globalTime}</span>
-                <span>Event: {eventTime}</span>
+                <span>Global: {inquiry1.globalTime}</span>
+                <span>Event: {inquiry1.eventTime}</span>
             </div>
-            <p><button onClick={() => startCapture("user is reading")} className="button">Start Reading</button>
-            <button onClick={() => stopCapture("user is reading")} className="button">Stop Reading</button></p>
-            <p><button onClick={() => startCapture("user editing")} className="button">Start Editing</button>
-            <button onClick={() => stopCapture("user editing")} className="button">Stop Editing</button></p>
+            <p><button onClick={() => inquiry1.startCapture("user is reading")} className="button">Start Reading</button>
+            <button onClick={() => inquiry1.stopCapture("user is reading")} className="button">Stop Reading</button></p>
+            <p><button onClick={() => inquiry1.startCapture("user editing")} className="button">Start Editing</button>
+            <button onClick={() => inquiry1.stopCapture("user editing")} className="button">Stop Editing</button></p>
             <p><button onClick={logging} className="button">Log</button>
-            <button onClick={reset} className="button">Reset</button></p>
+            <button onClick={inquiry1.reset} className="button">Reset</button></p>
         </div>  
          <div className="container"> 
              <h3>Inquiry 2</h3>
