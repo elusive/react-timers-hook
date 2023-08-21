@@ -17,7 +17,7 @@
   background-color: #282c34;
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
@@ -39,7 +39,7 @@
 
 .container {
     width: 500px;
-    height: 360px;
+    height: 520px;
     margin: auto;
     border: 2px solid black;
     padding: 20px;
