@@ -1,63 +1,11 @@
 import { useState, useEffect } from "react";
-import { create } from "zustand";
-import { devtools, persist, createJSONStorage } from "zustand/middleware";
-
-
-interface Timestamp {
-    timestampNumber: number;
-    startTime: number;
-    endTime: number;
-    captured: boolean;
-}
-
-interface  CaptureEvent {
-    captureEventNumber: number;
-    type: string;
-    timestamps: Timestamp[];
-    captured: boolean;
-}
-
-interface Inquiry {
-    inquiryNumber: number;
-    inquiryText: string;
-    captures: CaptureEvent[];
-}
-
-
-// updates to CaptureDataState
-interface CaptureDataState {
-  events: Inquiry[] | null;
-  setEvents: (events: Inquiry[]) => void;
-  currentEvent: string | null;
-  setCurrentEvent: (captureType: string | null) => void;
-  globalTime: number | null;
-  setGlobalTime: (time: number | null) => void;
-  eventTime: number | null;  
-  setEventTime: (time: number | null) => void;
-}
-
-
-// updates to useCaptureDataStore hook
-const useCaptureDataStore = create<CaptureDataState>()(
-    devtools(
-        persist((set) => ({
-            events: null,
-            setEvents: (events: Inquiry[]) => set({ events }),
-            currentEvent: null,
-            setCurrentEvent: (captureType: string | null) => set({ currentEvent: captureType }),
-            globalTime: null,
-            setGlobalTime: (time: number | null) => set({ globalTime: time }),
-            eventTime: null,
-            setEventTime: (time: number | null) => set({ eventTime: time }),
-        }), { 
-                name: "required name", 
-                storage: createJSONStorage(() => sessionStorage),
-            })
-    )
-);
+import { useCaptureDataStore } from "../App";
+import { Inquiry, CaptureEvent, Timestamp } from "../App";
 
 /**
  * Desc:    Hook to capture start/stop times on events 
+ * Params: 
+ *      inquiryText: string of the inquiryText identifies this Inquiry
  * Returns: globalTimer, eventTimer, events, currentEvent
  */ 
 export const useCaptureTimers = (inquiryText: string) => {
@@ -232,7 +180,18 @@ export const useCaptureTimers = (inquiryText: string) => {
         }, 1000);
 
         return () => clearInterval(intervalId);
-    })
+    });
+
+    useEffect(() => {
+        // update isRunnings based on globalTime so that we 
+        // see changes to globalTime when reset in another 
+        // instance of the hook
+        isRunningSet(!!globalTime);
+        if (!globalTime) {
+            globalElapsedSet(0);
+            eventElapsedSet(0);
+        }
+    }, [globalTime]);
 
 
     const formatTime = (timeMs: number): string =>  {
