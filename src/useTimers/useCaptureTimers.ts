@@ -40,7 +40,7 @@ interface CaptureDataState {
 // updates to useCaptureDataStore hook
 const useCaptureDataStore = create<CaptureDataState>()(
     devtools(
-        persist((set, get) => ({
+        persist((set) => ({
             events: null,
             setEvents: (events: Inquiry[]) => set({ events }),
             currentEvent: null,
